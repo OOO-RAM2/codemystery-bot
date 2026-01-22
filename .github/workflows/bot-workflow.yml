@@ -22,11 +22,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install python-telegram-bot google-genai python-dotenv requests
     
-- name: Run bot
-  env:
-    TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-    TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-    GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-  run: python telegram_bot_gemini.py
-
+    - name: Run bot
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      run: python telegram_bot_gemini.py
       timeout-minutes: 10
