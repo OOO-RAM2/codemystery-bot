@@ -1,11 +1,9 @@
 import asyncio
 import logging
-from datetime import datetime, time
 from telegram import Bot
 from telegram.error import TelegramError
 import google.genai as genai
 import requests
-from io import BytesIO
 import os
 from dotenv import load_dotenv
 
@@ -181,28 +179,6 @@ async def daily_post():
     else:
         logger.error("❌ Ошибка при генерации контента")
 
-async def scheduler():
-    """Планировщик для запуска постов в определенное время"""
-    
-    # Время публикации (например, 10:00 по MSK)
-    publish_time = time(10, 0)
-    
-    logger.info(f"📅 Бот запущен. Пост будет публиковаться ежедневно в {publish_time.strftime('%H:%M')}")
-    
-    while True:
-        now = datetime.now().time()
-        
-        # Проверяем, пришло ли время публикации
-        if now.hour == publish_time.hour and now.minute == publish_time.minute:
-            logger.info("⏰ Время публикации наступило!")
-            await daily_post()
-            
-            # Ждем минуту, чтобы не запустить дважды
-            await asyncio.sleep(60)
-        
-        # Проверяем каждые 30 секунд
-        await asyncio.sleep(30)
-
 async def main():
     """Главная функция"""
     
@@ -220,8 +196,9 @@ async def main():
         logger.error("❌ GOOGLE_API_KEY не найден")
         return
     
-    # Запускаем планировщик
-    await scheduler()
+    # Одноразовый запуск (без scheduler)
+    await daily_post()
+    logger.info("✅ Бот завершил работу")
 
 if __name__ == "__main__":
     try:
