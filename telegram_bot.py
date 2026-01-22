@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, time
 from telegram import Bot
 from telegram.error import TelegramError
-import anthropic
+import google.generativeai as genai
 import requests
 from io import BytesIO
 import os
@@ -21,12 +21,13 @@ logger = logging.getLogger(__name__)
 
 # API ключи
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID', '-1001234567890')  # @codemystery52
-ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
+CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID', '@codemystery52')
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 
 # Инициализация API клиентов
 bot = Bot(token=TELEGRAM_TOKEN)
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+genai.configure(api_key=GOOGLE_API_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Темы для генерации контента
 TOPICS = [
@@ -53,7 +54,7 @@ TOPICS = [
 ]
 
 async def generate_content_idea():
-    """Генерирует идею для поста с помощью Claude"""
+    """Генерирует идею для поста с помощью Google Gemini"""
     
     import random
     selected_topic = random.choice(TOPICS)
@@ -70,18 +71,12 @@ async def generate_content_idea():
 - "image_prompt": описание для генерации изображения на английском (детальное, 150-200 символов)
 - "hashtags": список релевантных хештегов (5-7 штук)
 
-Не добавляй markdown форматирование, только чистый JSON."""
+Не добавляй markdown форматирование, только чистый JSON.
+Начни ответ сразу с {{"""
 
     try:
-        message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=1024,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-        
-        response_text = message.content[0].text
+        response = model.generate_content(prompt)
+        response_text = response.text
         
         # Парсим JSON
         import json
@@ -94,50 +89,15 @@ async def generate_content_idea():
             logger.info(f"✅ Идея сгенерирована: {content_data['title']}")
             return content_data
         else:
-            logger.error("Не удалось парсить JSON из ответа Claude")
+            logger.error("Не удалось парсить JSON из ответа Gemini")
             return None
             
     except Exception as e:
         logger.error(f"❌ Ошибка при генерации идеи: {e}")
         return None
 
-async def generate_image_fal(image_prompt):
-    """Генерирует изображение используя FAL.ai (бесплатный API)"""
-    
-    try:
-        # FAL.ai - бесплатный сервис для генерации изображений
-        url = "https://queue.fal.ai/fal-ai/flux-pro"
-        
-        payload = {
-            "prompt": image_prompt,
-            "num_inference_steps": 28,
-            "guidance_scale": 3.5,
-            "aspect_ratio": "16:9"
-        }
-        
-        headers = {
-            "Authorization": f"Key {os.getenv('FAL_API_KEY', '')}",
-            "Content-Type": "application/json"
-        }
-        
-        response = requests.post(url, json=payload, headers=headers, timeout=60)
-        
-        if response.status_code == 200:
-            result = response.json()
-            if 'images' in result and len(result['images']) > 0:
-                image_url = result['images'][0]['url']
-                logger.info(f"✅ Изображение сгенерировано: {image_url}")
-                return image_url
-        
-        logger.warning("FAL.ai недоступен, используем fallback...")
-        return await generate_image_pollinations(image_prompt)
-        
-    except Exception as e:
-        logger.warning(f"Ошибка FAL.ai: {e}, используем fallback...")
-        return await generate_image_pollinations(image_prompt)
-
 async def generate_image_pollinations(image_prompt):
-    """Fallback: генерирует изображение через Pollinations.ai (полностью бесплатно)"""
+    """Генерирует изображение через Pollinations.ai (полностью бесплатно)"""
     
     try:
         # Pollinations.ai - полностью бесплатный сервис
@@ -245,7 +205,7 @@ async def main():
     """Главная функция"""
     
     logger.info("=" * 60)
-    logger.info("🤖 CodeMystery AI Bot запущен")
+    logger.info("🤖 CodeMystery AI Bot (с Gemini) запущен")
     logger.info(f"📍 Канал: {CHANNEL_ID}")
     logger.info("=" * 60)
     
@@ -254,8 +214,8 @@ async def main():
         logger.error("❌ TELEGRAM_BOT_TOKEN не найден в .env")
         return
     
-    if not ANTHROPIC_API_KEY:
-        logger.error("❌ ANTHROPIC_API_KEY не найден в .env")
+    if not GOOGLE_API_KEY:
+        logger.error("❌ GOOGLE_API_KEY не найден в .env")
         return
     
     # Запускаем планировщик
