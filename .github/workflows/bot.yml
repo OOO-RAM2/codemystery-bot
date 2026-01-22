@@ -21,5 +21,4 @@ jobs:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-run: |
-  python telegram_bot_gemini.py
+run: |python telegram_bot_gemini.py
